@@ -4,6 +4,10 @@ async function request(path, options = {}) {
     ...options,
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
+  if (res.status === 401 && !path.startsWith("/auth")) {
+    // Session expired mid-use: tell the app shell to show the login screen.
+    window.dispatchEvent(new Event("auth-expired"));
+  }
   if (res.status === 204) return null;
   const data = await res.json().catch(() => null);
   if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
@@ -11,6 +15,18 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  auth: {
+    status: () => request("/auth/status"),
+    setup: (body) => request("/auth/setup", { method: "POST", body }),
+    login: (body) => request("/auth/login", { method: "POST", body }),
+    logout: () => request("/auth/logout", { method: "POST" }),
+    register: (body) => request("/auth/register", { method: "POST", body }),
+    changePassword: (body) => request("/auth/password", { method: "POST", body }),
+    invites: {
+      list: () => request("/auth/invites"),
+      create: () => request("/auth/invites", { method: "POST" }),
+    },
+  },
   players: {
     list: () => request("/players"),
     create: (body) => request("/players", { method: "POST", body }),

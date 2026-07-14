@@ -1,12 +1,21 @@
+import path from "path";
+import { fileURLToPath } from "url";
 import express from "express";
-import cors from "cors";
+import cookieParser from "cookie-parser";
 import db from "./db.js";
+import { authRouter, requireAuth } from "./auth.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const CLIENT_DIST = path.join(__dirname, "..", "client", "dist");
 
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 
 const PORT = process.env.PORT || 3001;
+
+app.use("/api/auth", authRouter);
+app.use("/api", requireAuth);
 
 // ---------- helpers ----------
 
@@ -278,6 +287,13 @@ app.get("/api/stats", (req, res) => {
   res.json(list);
 });
 
+// Serve the built client (npm start = the whole app on one port).
+app.use(express.static(CLIENT_DIST));
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api")) return next();
+  res.sendFile(path.join(CLIENT_DIST, "index.html"), (err) => err && next());
+});
+
 app.listen(PORT, () => {
-  console.log(`Scoreboard API listening on http://localhost:${PORT}`);
+  console.log(`Scoreboard listening on http://localhost:${PORT}`);
 });

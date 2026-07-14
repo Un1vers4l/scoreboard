@@ -26,11 +26,17 @@ npm run dev
 
 The SQLite database is created automatically at `server/scoreboard.db`.
 
-## Production
+## Running without the dev servers
 
 ```bash
 npm run build   # builds the client into client/dist
-npm start       # starts the API server
+npm start       # serves the whole app (API + built client) on http://localhost:3001
 ```
 
-Serve `client/dist` with any static host and point it at the API (or add a static middleware to the server).
+Use `npm run dev` while developing (hot reload, port 5173). Use `npm start` to just run the app on a single port — remember to `npm run build` first so the client is up to date.
+
+If a start fails with "port already in use", clear leftovers with:
+
+```bash
+lsof -ti:3001,5173 | xargs kill
+```
