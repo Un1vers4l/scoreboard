@@ -1,0 +1,24 @@
+# Render Blueprint — deploys the whole app (Express API + built React client) as
+# a single web service with a persistent disk for the SQLite database.
+# Spec: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: scoreboard
+    runtime: node
+    plan: starter # required for a persistent disk (~$7/mo); free plans have no disk
+    region: frankfurt # closest region; change if you prefer another
+    branch: main
+    # --include=dev is needed because NODE_ENV=production would otherwise make npm
+    # skip devDependencies (vite), and the client build needs them.
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/auth/status
+    envVars:
+      - key: NODE_ENV
+        value: production # makes the session cookie Secure (Render serves HTTPS)
+      - key: SCOREBOARD_DB
+        value: /data/scoreboard.db # lives on the persistent disk below
+    disk:
+      name: scoreboard-data
+      mountPath: /data
+      sizeGB: 1

@@ -42,6 +42,17 @@ function gameWithDetails(gameId) {
   return game;
 }
 
+// Loads a game and enforces that it belongs to the signed-in account.
+// Sends the 404 itself and returns null when it doesn't.
+function userGame(req, res) {
+  const game = gameWithDetails(req.params.id);
+  if (!game || game.user_id !== req.user.id) {
+    res.status(404).json({ error: "game not found" });
+    return null;
+  }
+  return game;
+}
+
 function totals(game) {
   const t = {};
   for (const p of game.players) t[p.id] = 0;
@@ -63,7 +74,11 @@ function ranking(game) {
 // ---------- players ----------
 
 app.get("/api/players", (req, res) => {
-  res.json(db.prepare("SELECT * FROM players ORDER BY name COLLATE NOCASE").all());
+  res.json(
+    db
+      .prepare("SELECT * FROM players WHERE user_id = ? ORDER BY name COLLATE NOCASE")
+      .all(req.user.id)
+  );
 });
 
 app.post("/api/players", (req, res) => {
@@ -73,8 +88,8 @@ app.post("/api/players", (req, res) => {
   }
   try {
     const info = db
-      .prepare("INSERT INTO players (name, color) VALUES (?, ?)")
-      .run(name.trim(), color);
+      .prepare("INSERT INTO players (user_id, name, color) VALUES (?, ?, ?)")
+      .run(req.user.id, name.trim(), color);
     res.status(201).json(db.prepare("SELECT * FROM players WHERE id = ?").get(info.lastInsertRowid));
   } catch (e) {
     if (String(e.message).includes("UNIQUE")) {
@@ -87,27 +102,35 @@ app.post("/api/players", (req, res) => {
 app.put("/api/players/:id", (req, res) => {
   const { name, color } = req.body;
   const info = db
-    .prepare("UPDATE players SET name = COALESCE(?, name), color = COALESCE(?, color) WHERE id = ?")
-    .run(name?.trim() ?? null, color ?? null, req.params.id);
+    .prepare(
+      "UPDATE players SET name = COALESCE(?, name), color = COALESCE(?, color) WHERE id = ? AND user_id = ?"
+    )
+    .run(name?.trim() ?? null, color ?? null, req.params.id, req.user.id);
   if (!info.changes) return res.status(404).json({ error: "player not found" });
   res.json(db.prepare("SELECT * FROM players WHERE id = ?").get(req.params.id));
 });
 
 app.delete("/api/players/:id", (req, res) => {
+  const player = db
+    .prepare("SELECT id FROM players WHERE id = ? AND user_id = ?")
+    .get(req.params.id, req.user.id);
+  if (!player) return res.status(404).json({ error: "player not found" });
   const used = db
     .prepare("SELECT COUNT(*) AS n FROM game_players WHERE player_id = ?")
-    .get(req.params.id);
+    .get(player.id);
   if (used.n > 0) {
     return res.status(409).json({ error: "Player has games and cannot be deleted" });
   }
-  db.prepare("DELETE FROM players WHERE id = ?").run(req.params.id);
+  db.prepare("DELETE FROM players WHERE id = ?").run(player.id);
   res.status(204).end();
 });
 
 // ---------- templates ----------
 
 app.get("/api/templates", (req, res) => {
-  const rows = db.prepare("SELECT * FROM templates ORDER BY builtin DESC, name").all();
+  const rows = db
+    .prepare("SELECT * FROM templates WHERE builtin = 1 OR user_id = ? ORDER BY builtin DESC, name")
+    .all(req.user.id);
   res.json(rows.map((r) => ({ ...r, rules: JSON.parse(r.rules), builtin: !!r.builtin })));
 });
 
@@ -118,8 +141,8 @@ app.post("/api/templates", (req, res) => {
   }
   try {
     const info = db
-      .prepare("INSERT INTO templates (name, rules, builtin) VALUES (?, ?, 0)")
-      .run(name.trim(), JSON.stringify(rules));
+      .prepare("INSERT INTO templates (user_id, name, rules, builtin) VALUES (?, ?, ?, 0)")
+      .run(req.user.id, name.trim(), JSON.stringify(rules));
     const row = db.prepare("SELECT * FROM templates WHERE id = ?").get(info.lastInsertRowid);
     res.status(201).json({ ...row, rules: JSON.parse(row.rules), builtin: false });
   } catch (e) {
@@ -131,8 +154,10 @@ app.post("/api/templates", (req, res) => {
 });
 
 app.delete("/api/templates/:id", (req, res) => {
-  const row = db.prepare("SELECT builtin FROM templates WHERE id = ?").get(req.params.id);
-  if (!row) return res.status(404).json({ error: "template not found" });
+  const row = db.prepare("SELECT builtin, user_id FROM templates WHERE id = ?").get(req.params.id);
+  if (!row || (!row.builtin && row.user_id !== req.user.id)) {
+    return res.status(404).json({ error: "template not found" });
+  }
   if (row.builtin) return res.status(409).json({ error: "Built-in templates cannot be deleted" });
   db.prepare("DELETE FROM templates WHERE id = ?").run(req.params.id);
   res.status(204).end();
@@ -143,8 +168,10 @@ app.delete("/api/templates/:id", (req, res) => {
 app.get("/api/games", (req, res) => {
   const { status } = req.query;
   const games = status
-    ? db.prepare("SELECT id FROM games WHERE status = ? ORDER BY created_at DESC").all(status)
-    : db.prepare("SELECT id FROM games ORDER BY created_at DESC").all();
+    ? db
+        .prepare("SELECT id FROM games WHERE user_id = ? AND status = ? ORDER BY created_at DESC")
+        .all(req.user.id, status)
+    : db.prepare("SELECT id FROM games WHERE user_id = ? ORDER BY created_at DESC").all(req.user.id);
   res.json(games.map((g) => gameWithDetails(g.id)));
 });
 
@@ -153,10 +180,19 @@ app.post("/api/games", (req, res) => {
   if (!name?.trim() || !rules || !Array.isArray(playerIds) || playerIds.length < 2) {
     return res.status(400).json({ error: "name, rules and at least 2 players are required" });
   }
+  const owned = db
+    .prepare(
+      `SELECT COUNT(*) AS n FROM players
+       WHERE user_id = ? AND id IN (${playerIds.map(() => "?").join(",")})`
+    )
+    .get(req.user.id, ...playerIds);
+  if (owned.n !== playerIds.length) {
+    return res.status(400).json({ error: "unknown player in playerIds" });
+  }
   const create = db.transaction(() => {
     const info = db
-      .prepare("INSERT INTO games (name, rules) VALUES (?, ?)")
-      .run(name.trim(), JSON.stringify(rules));
+      .prepare("INSERT INTO games (user_id, name, rules) VALUES (?, ?, ?)")
+      .run(req.user.id, name.trim(), JSON.stringify(rules));
     const gameId = info.lastInsertRowid;
     const insert = db.prepare(
       "INSERT INTO game_players (game_id, player_id, seat) VALUES (?, ?, ?)"
@@ -168,20 +204,21 @@ app.post("/api/games", (req, res) => {
 });
 
 app.get("/api/games/:id", (req, res) => {
-  const game = gameWithDetails(req.params.id);
-  if (!game) return res.status(404).json({ error: "game not found" });
-  res.json(game);
+  const game = userGame(req, res);
+  if (game) res.json(game);
 });
 
 app.delete("/api/games/:id", (req, res) => {
-  db.prepare("DELETE FROM games WHERE id = ?").run(req.params.id);
+  const game = userGame(req, res);
+  if (!game) return;
+  db.prepare("DELETE FROM games WHERE id = ?").run(game.id);
   res.status(204).end();
 });
 
 // Add a round: { scores: { [playerId]: value } }
 app.post("/api/games/:id/rounds", (req, res) => {
-  const game = gameWithDetails(req.params.id);
-  if (!game) return res.status(404).json({ error: "game not found" });
+  const game = userGame(req, res);
+  if (!game) return;
   if (game.status !== "active") return res.status(409).json({ error: "game is finished" });
 
   const { scores } = req.body;
@@ -203,8 +240,8 @@ app.post("/api/games/:id/rounds", (req, res) => {
 // Add a single score entry for one player: { playerId, value }
 // Used by "single" scoring mode — each player has their own entry stream.
 app.post("/api/games/:id/scores", (req, res) => {
-  const game = gameWithDetails(req.params.id);
-  if (!game) return res.status(404).json({ error: "game not found" });
+  const game = userGame(req, res);
+  if (!game) return;
   if (game.status !== "active") return res.status(409).json({ error: "game is finished" });
 
   const playerId = Number(req.body.playerId);
@@ -225,8 +262,8 @@ app.post("/api/games/:id/scores", (req, res) => {
 
 // Edit an existing round: { scores: { [playerId]: value } }
 app.put("/api/games/:id/rounds/:round", (req, res) => {
-  const game = gameWithDetails(req.params.id);
-  if (!game) return res.status(404).json({ error: "game not found" });
+  const game = userGame(req, res);
+  if (!game) return;
   const round = Number(req.params.round);
   if (round < 1 || round > game.rounds.length) {
     return res.status(404).json({ error: "round not found" });
@@ -246,8 +283,8 @@ app.put("/api/games/:id/rounds/:round", (req, res) => {
 });
 
 app.post("/api/games/:id/finish", (req, res) => {
-  const game = gameWithDetails(req.params.id);
-  if (!game) return res.status(404).json({ error: "game not found" });
+  const game = userGame(req, res);
+  if (!game) return;
   db.prepare(
     "UPDATE games SET status = 'finished', finished_at = datetime('now') WHERE id = ?"
   ).run(game.id);
@@ -257,10 +294,10 @@ app.post("/api/games/:id/finish", (req, res) => {
 // ---------- stats ----------
 
 app.get("/api/stats", (req, res) => {
-  const players = db.prepare("SELECT * FROM players").all();
+  const players = db.prepare("SELECT * FROM players WHERE user_id = ?").all(req.user.id);
   const finished = db
-    .prepare("SELECT id FROM games WHERE status = 'finished'")
-    .all()
+    .prepare("SELECT id FROM games WHERE user_id = ? AND status = 'finished'")
+    .all(req.user.id)
     .map((g) => gameWithDetails(g.id));
 
   const stats = {};

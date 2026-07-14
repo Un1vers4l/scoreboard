@@ -40,3 +40,12 @@ If a start fails with "port already in use", clear leftovers with:
 ```bash
 lsof -ti:3001,5173 | xargs kill
 ```
+
+## Deploying to Render
+
+The repo ships a [`render.yaml`](render.yaml) Blueprint. In Render: **New → Blueprint**, pick this
+repo, and confirm — it creates one **Starter** web service (needed for the persistent disk) that
+builds the client and serves it together with the API. The SQLite database lives on a 1 GB disk
+mounted at `/data`, so data survives redeploys. `NODE_ENV=production` makes the session cookie
+`Secure` over Render's HTTPS. The deployed database starts empty — visit the site once to create
+the first (admin) account.

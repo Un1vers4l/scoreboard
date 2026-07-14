@@ -10,20 +10,25 @@ db.pragma("foreign_keys = ON");
 db.exec(`
   CREATE TABLE IF NOT EXISTS players (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
+    user_id INTEGER REFERENCES users(id),
+    name TEXT NOT NULL,
     color TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (user_id, name)
   );
 
   CREATE TABLE IF NOT EXISTS templates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
+    user_id INTEGER REFERENCES users(id),
+    name TEXT NOT NULL,
     rules TEXT NOT NULL,
-    builtin INTEGER NOT NULL DEFAULT 0
+    builtin INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (user_id, name)
   );
 
   CREATE TABLE IF NOT EXISTS games (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER REFERENCES users(id),
     name TEXT NOT NULL,
     rules TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'active',
@@ -76,6 +81,53 @@ if (!userColumns.includes("is_admin")) {
   db.exec("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0");
 }
 
+// Migration for databases created before data was scoped per account: rebuild
+// players/templates with per-user uniqueness and assign existing data to the
+// admin (or earliest) account.
+const playerColumns = db.prepare("PRAGMA table_info(players)").all().map((c) => c.name);
+if (!playerColumns.includes("user_id")) {
+  const owner =
+    db.prepare("SELECT id FROM users ORDER BY is_admin DESC, id LIMIT 1").get()?.id ?? null;
+  db.pragma("foreign_keys = OFF");
+  db.transaction(() => {
+    db.exec(`
+      CREATE TABLE players_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER REFERENCES users(id),
+        name TEXT NOT NULL,
+        color TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (user_id, name)
+      );
+    `);
+    db.prepare(
+      `INSERT INTO players_new (id, user_id, name, color, created_at)
+       SELECT id, ?, name, color, created_at FROM players`
+    ).run(owner);
+    db.exec("DROP TABLE players; ALTER TABLE players_new RENAME TO players;");
+
+    db.exec(`
+      CREATE TABLE templates_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER REFERENCES users(id),
+        name TEXT NOT NULL,
+        rules TEXT NOT NULL,
+        builtin INTEGER NOT NULL DEFAULT 0,
+        UNIQUE (user_id, name)
+      );
+    `);
+    db.prepare(
+      `INSERT INTO templates_new (id, user_id, name, rules, builtin)
+       SELECT id, CASE WHEN builtin = 1 THEN NULL ELSE ? END, name, rules, builtin FROM templates`
+    ).run(owner);
+    db.exec("DROP TABLE templates; ALTER TABLE templates_new RENAME TO templates;");
+
+    db.exec("ALTER TABLE games ADD COLUMN user_id INTEGER REFERENCES users(id)");
+    db.prepare("UPDATE games SET user_id = ?").run(owner);
+  })();
+  db.pragma("foreign_keys = ON");
+}
+
 // If accounts exist but none is admin (pre-admin databases), the first account becomes admin.
 db.exec(`
   UPDATE users SET is_admin = 1
@@ -98,13 +150,16 @@ const BUILTIN_TEMPLATES = [
   },
 ];
 
-// Upsert so rule changes to built-ins reach existing databases.
-const insertTemplate = db.prepare(
-  `INSERT INTO templates (name, rules, builtin) VALUES (?, ?, 1)
-   ON CONFLICT(name) DO UPDATE SET rules = excluded.rules WHERE templates.builtin = 1`
-);
+// Upsert so rule changes to built-ins reach existing databases. Built-ins have
+// user_id NULL (shared by every account), so the upsert is done manually.
+const findBuiltin = db.prepare("SELECT id FROM templates WHERE builtin = 1 AND name = ?");
+const updateBuiltin = db.prepare("UPDATE templates SET rules = ? WHERE id = ?");
+const createBuiltin = db.prepare("INSERT INTO templates (name, rules, builtin) VALUES (?, ?, 1)");
 for (const t of BUILTIN_TEMPLATES) {
-  insertTemplate.run(t.name, JSON.stringify(t.rules));
+  const rules = JSON.stringify(t.rules);
+  const existing = findBuiltin.get(t.name);
+  if (existing) updateBuiltin.run(rules, existing.id);
+  else createBuiltin.run(t.name, rules);
 }
 
 export default db;
