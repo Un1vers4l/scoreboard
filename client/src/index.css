@@ -1,0 +1,720 @@
+:root {
+  --bg: #e9e7e0;
+  --surface: #f6f4ee;
+  --surface-2: #dddbd2;
+  --border: #0a0a0a;
+  --divider: #0a0a0a;
+  --text: #0a0a0a;
+  --text-dim: #55534c;
+  --accent: #ff3e00;
+  --accent-soft: #ffd8c9;
+  --accent-text: #0a0a0a;
+  --danger: #c40000;
+  --gold: #ff3e00;
+  --silver: #6e6c65;
+  --bronze: #8a6a4b;
+  --radius: 0;
+  --font-display: "Anton", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  max-width: 640px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  border-left: 2px solid var(--border);
+  border-right: 2px solid var(--border);
+  background: var(--bg);
+}
+
+main {
+  flex: 1;
+  padding: 20px 16px calc(88px + env(safe-area-inset-bottom));
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 3rem;
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+  margin: 8px 0 20px;
+  text-transform: uppercase;
+}
+
+h2 {
+  margin: 28px 0 10px;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-left: 8px solid var(--accent);
+  padding-left: 8px;
+}
+
+a {
+  color: var(--text);
+  text-decoration-thickness: 2px;
+}
+
+/* ---------- bottom navigation ---------- */
+
+nav.bottom {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  background: var(--surface);
+  border-top: 3px solid var(--border);
+  border-left: 2px solid var(--border);
+  border-right: 2px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 10;
+}
+
+nav.bottom .brand {
+  display: none;
+}
+
+nav.bottom a {
+  flex: 1;
+  text-align: center;
+  padding: 16px 4px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-right: 2px solid var(--border);
+}
+
+nav.bottom a:last-child {
+  border-right: none;
+}
+
+nav.bottom a.active {
+  background: var(--border);
+  color: var(--surface);
+  box-shadow: inset 0 4px 0 var(--accent);
+}
+
+/* ---------- generic UI ---------- */
+
+.card {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+button {
+  font: inherit;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  padding: 13px 16px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:active {
+  background: var(--border);
+  color: var(--surface);
+}
+
+button.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+button.primary:active {
+  background: var(--border);
+  color: var(--accent);
+}
+
+button.danger {
+  background: var(--surface);
+  color: var(--danger);
+}
+
+button.danger:active {
+  background: var(--danger);
+  color: var(--surface);
+}
+
+button.small {
+  padding: 7px 12px;
+  font-size: 0.78rem;
+}
+
+button.block {
+  width: 100%;
+}
+
+button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+input,
+select {
+  font: inherit;
+  background: #ffffff;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  color: var(--text);
+  padding: 11px 12px;
+  width: 100%;
+}
+
+input:focus,
+select:focus {
+  outline: 3px solid var(--accent);
+  outline-offset: -1px;
+}
+
+label.field {
+  display: block;
+  margin-bottom: 14px;
+}
+
+label.field span {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.row .grow {
+  flex: 1;
+}
+
+.error {
+  color: var(--surface);
+  background: var(--danger);
+  border: 2px solid var(--border);
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin: 10px 0;
+}
+
+.empty {
+  color: var(--text-dim);
+  text-align: center;
+  border: 2px dashed var(--border);
+  padding: 32px 16px;
+  font-size: 0.9rem;
+}
+
+/* ---------- players ---------- */
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border: 2px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.swatch {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--border);
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.swatch.selected {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.player-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px 9px 9px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.chip .dot {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+}
+
+.chip.selected {
+  background: var(--border);
+  color: var(--surface);
+}
+
+/* ---------- standings ---------- */
+
+.standing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  margin-bottom: -2px;
+}
+
+.standing .place {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.15rem;
+  width: 44px;
+  padding: 4px 0;
+  text-align: center;
+  flex-shrink: 0;
+  border: 2px solid var(--border);
+}
+
+.standing.p1 {
+  background: var(--border);
+  color: var(--surface);
+}
+
+.standing.p1 .place {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.standing.p1 .total {
+  color: var(--accent);
+}
+
+.standing.p2 .place {
+  color: var(--silver);
+}
+
+.standing.p3 .place {
+  color: var(--bronze);
+}
+
+.standing .name {
+  flex: 1;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.standing .name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.standing .total {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.dealer-badge {
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: var(--accent);
+  color: var(--accent-text);
+  border: 2px solid var(--border);
+  padding: 2px 7px;
+  flex-shrink: 0;
+}
+
+/* ---------- round entry ---------- */
+
+.round-entry .player-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.round-entry .player-row .pname {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.round-entry input {
+  width: 96px;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.round-entry .add-btn {
+  width: 52px;
+  padding: 10px 0;
+  font-size: 1.2rem;
+  line-height: 1;
+  flex-shrink: 0;
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+/* ---------- modal ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+
+.modal {
+  background: var(--surface);
+  border: 3px solid var(--border);
+  padding: 20px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.8rem;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+
+.modal-text {
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  margin: 0 0 16px;
+}
+
+.modal-actions {
+  display: grid;
+  gap: 10px;
+}
+
+/* ---------- rounds table ---------- */
+
+.rounds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+}
+
+.rounds-table th,
+.rounds-table td {
+  padding: 8px;
+  text-align: center;
+  border-bottom: 1px solid var(--divider);
+}
+
+.rounds-table tr:last-child td {
+  border-bottom: none;
+}
+
+.rounds-table th:first-child,
+.rounds-table td:first-child {
+  text-align: left;
+  color: var(--text-dim);
+}
+
+.rounds-table tr.editable td {
+  cursor: pointer;
+}
+
+.rounds-table tr.editable:hover td {
+  background: var(--accent-soft);
+}
+
+.rounds-table td.editable-cell {
+  cursor: pointer;
+}
+
+.rounds-table td.editable-cell:hover {
+  background: var(--accent-soft);
+}
+
+.rounds-table .cell-empty {
+  color: var(--text-dim);
+}
+
+.rounds-table .col-dot {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  display: inline-block;
+}
+
+/* ---------- game over ---------- */
+
+.gameover {
+  text-align: center;
+  padding: 8px 0 24px;
+}
+
+.gameover .trophy {
+  font-family: var(--font-display);
+  font-size: 3.4rem;
+  line-height: 1;
+  display: inline-block;
+  background: var(--accent);
+  color: var(--accent-text);
+  border: 3px solid var(--border);
+  padding: 10px 22px 6px;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+
+.gameover .winner-name {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  margin: 18px 0 2px;
+}
+
+.gameover > div:last-child {
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+}
+
+/* ---------- stats table ---------- */
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-table th,
+.stats-table td {
+  padding: 9px 8px;
+  border-bottom: 1px solid var(--divider);
+  text-align: center;
+}
+
+.stats-table tr:last-child td {
+  border-bottom: none;
+}
+
+.stats-table th:first-child,
+.stats-table td:first-child {
+  text-align: left;
+}
+
+.stats-table th {
+  color: var(--text);
+  background: var(--surface-2);
+  font-weight: 700;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- misc ---------- */
+
+.game-list-item {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.game-list-item:active {
+  background: var(--surface-2);
+}
+
+.game-list-item .meta {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  margin-top: 5px;
+}
+
+.dots {
+  display: flex;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.dots .dot {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+}
+
+/* ---------- desktop layout ---------- */
+
+@media (min-width: 900px) {
+  #root {
+    max-width: 1120px;
+  }
+
+  main {
+    padding: 36px 40px 56px;
+  }
+
+  h1 {
+    font-size: 3.8rem;
+  }
+
+  /* tab bar becomes a sticky top nav */
+  nav.bottom {
+    position: sticky;
+    top: 0;
+    left: auto;
+    transform: none;
+    width: auto;
+    max-width: none;
+    order: -1;
+    border: none;
+    border-bottom: 3px solid var(--border);
+    padding-bottom: 0;
+  }
+
+  nav.bottom .brand {
+    display: flex;
+    align-items: center;
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    padding: 0 22px;
+    margin-right: auto;
+    background: var(--accent);
+    color: var(--accent-text);
+    border-right: 2px solid var(--border);
+  }
+
+  nav.bottom a {
+    flex: 0 0 auto;
+    padding: 18px 30px;
+    font-size: 0.72rem;
+    border-right: none;
+    border-left: 2px solid var(--border);
+  }
+
+  /* card grid (home, history) */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .grid-2 > * {
+    margin-bottom: 0;
+  }
+
+  /* generic two-column page layout */
+  .cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 36px;
+    align-items: start;
+  }
+
+  /* active game layout: standings + rounds left, entry + actions right */
+  .game-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 36px;
+    align-items: start;
+    grid-template-areas:
+      "standings entry"
+      "rounds entry"
+      "rounds actions";
+  }
+
+  .ga-standings {
+    grid-area: standings;
+  }
+  .ga-entry {
+    grid-area: entry;
+  }
+  .ga-rounds {
+    grid-area: rounds;
+  }
+  .ga-actions {
+    grid-area: actions;
+  }
+
+  .cols > .col > h2:first-child,
+  .game-cols > div > h2:first-child {
+    margin-top: 0;
+  }
+}
