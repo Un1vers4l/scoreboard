@@ -606,6 +606,91 @@ label.field span {
   letter-spacing: 0.08em;
 }
 
+/* ---------- history analysis ---------- */
+
+.filter-bar .chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-chip {
+  padding: 9px 14px;
+  font-size: 0.7rem;
+}
+
+.filter-chip.selected {
+  background: var(--border);
+  color: var(--surface);
+  box-shadow: inset 0 3px 0 var(--accent);
+}
+
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 16px 0 4px;
+}
+
+.stat-tile {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  padding: 12px 14px;
+}
+
+.stat-tile .num {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-tile .lbl {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
+.win-bar {
+  display: flex;
+  height: 36px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+}
+
+.win-seg {
+  border-right: 2px solid var(--border);
+  min-width: 10px;
+}
+
+.win-seg:last-child {
+  border-right: none;
+}
+
+.win-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 8px;
+  font-size: 0.78rem;
+}
+
+.win-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.win-legend .dot {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border);
+  display: inline-block;
+}
+
 /* ---------- misc ---------- */
 
 .game-list-item {
@@ -784,5 +869,21 @@ main.auth-main {
   .cols > .col > h2:first-child,
   .game-cols > div > h2:first-child {
     margin-top: 0;
+  }
+
+  .stat-tiles {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .filter-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 24px;
+  }
+
+  .filter-bar .field {
+    flex: 1;
+    max-width: 320px;
+    margin-bottom: 0;
   }
 }
