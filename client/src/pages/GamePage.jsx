@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { api } from "../api.js";
 import {
@@ -22,14 +22,21 @@ export default function GamePage() {
   const [showEndDialog, setShowEndDialog] = useState(false);
   const [error, setError] = useState("");
 
+  const celebrated = useRef(false);
+
   useEffect(() => {
+    // Entering a different game (e.g. via "Play again"): reset per-game state.
+    celebrated.current = false;
+    setValues({});
+    setEditingRound(null);
+    setEditingCell(null);
+    setError("");
     api.games
       .get(id)
       .then(setGame)
       .catch(() => navigate("/"));
   }, [id, navigate]);
 
-  const celebrated = useRef(false);
   useEffect(() => {
     if (game?.status === "finished" && !celebrated.current) {
       celebrated.current = true;
@@ -50,6 +57,15 @@ export default function GamePage() {
 
   function setValue(pid, v) {
     setValues((vals) => ({ ...vals, [pid]: v }));
+  }
+
+  // Phone number keypads have no minus key, so entry rows get a ± toggle.
+  function toggleSign(pid) {
+    setValues((vals) => {
+      const s = String(vals[pid] ?? "").trim();
+      const next = s.startsWith("-") ? s.slice(1) : `-${s}`;
+      return { ...vals, [pid]: next };
+    });
   }
 
   // ----- rounds mode -----
@@ -138,6 +154,22 @@ export default function GamePage() {
     navigate("/");
   }
 
+  // Rematch: same name, same rules, same players in the same seating order —
+  // straight into the new game without the setup screen.
+  async function playAgain() {
+    setError("");
+    try {
+      const next = await api.games.create({
+        name: game.name,
+        rules: game.rules,
+        playerIds: game.players.map((p) => p.id),
+      });
+      navigate(`/game/${next.id}`);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   // ---------- finished view ----------
   if (game.status === "finished") {
     const winners = ranked.filter((r) => r.place === 1);
@@ -158,10 +190,11 @@ export default function GamePage() {
           </div>
           <div className="col">
             <RoundsTable game={game} single={isSingle} />
+            {error && <div className="error">{error}</div>}
             <div className="row" style={{ marginTop: 16 }}>
-              <Link to="/new" className="grow">
-                <button className="primary block">Play again</button>
-              </Link>
+              <button className="primary grow" onClick={playAgain}>
+                Play again
+              </button>
               <button className="danger" onClick={deleteGame}>
                 Delete
               </button>
@@ -214,6 +247,14 @@ export default function GamePage() {
                       {initials(editedPlayer?.name ?? "?")}
                     </span>
                     <span className="pname">{editedPlayer?.name}</span>
+                    <button
+                      type="button"
+                      className="sign-btn"
+                      aria-label="Toggle plus/minus"
+                      onClick={() => toggleSign(editingCell.playerId)}
+                    >
+                      ±
+                    </button>
                     <input
                       type="number"
                       inputMode="numeric"
@@ -250,6 +291,14 @@ export default function GamePage() {
                         {initials(p.name)}
                       </span>
                       <span className="pname">{p.name}</span>
+                      <button
+                        type="button"
+                        className="sign-btn"
+                        aria-label={`Toggle plus/minus for ${p.name}`}
+                        onClick={() => toggleSign(p.id)}
+                      >
+                        ±
+                      </button>
                       <input
                         type="number"
                         inputMode="numeric"
@@ -292,6 +341,14 @@ export default function GamePage() {
                       {initials(p.name)}
                     </span>
                     <span className="pname">{p.name}</span>
+                    <button
+                      type="button"
+                      className="sign-btn"
+                      aria-label={`Toggle plus/minus for ${p.name}`}
+                      onClick={() => toggleSign(p.id)}
+                    >
+                      ±
+                    </button>
                     <input
                       type="number"
                       inputMode="numeric"

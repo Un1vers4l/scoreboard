@@ -437,6 +437,14 @@ label.field span {
   color: var(--accent-text);
 }
 
+.round-entry .sign-btn {
+  width: 42px;
+  padding: 10px 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
 /* ---------- modal ---------- */
 
 .modal-overlay {
